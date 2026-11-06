@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#080b14">
-<meta name="description" content="مساعد برمجي بالعربية مع مجمّع مفاتيح وتدوير تلقائي ونماذج مفتوحة المصدر.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<meta name="description" content="مساعد برمجي بالعربية مع دعم النماذج المفتوحة المصدر.">
 <title>المبرمج الذكي | Smart Programmer</title>
 <style type="text/css">
 [hidden]{display:none!important}
@@ -301,34 +303,6 @@ html[data-shape="soft"] :is(.msg,.composebox,.panel,.convpanel,.codewrap,.diagbo
 html[data-shape="soft"] :is(.side,.top,.content){border-radius:24px}
 </style>
 <style type="text/css">
-/* ===== +ROUTER: إضافات فقط، لا تعديل على قواعد قائمة ===== */
-.rt-wrap{max-width:760px;width:calc(100% - 48px);margin:12px auto}
-.rt-card{border:1px solid rgba(255,255,255,.09);border-radius:16px;background:rgba(16,23,38,.94);padding:16px;display:grid;gap:12px;margin-bottom:12px}
-.rt-card h3{margin:0;font-size:14px;color:var(--cyan)}
-.rt-stat{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.rt-stat div{border:1px solid var(--line,#27344a);border-radius:12px;padding:8px;text-align:center;background:rgba(255,255,255,.03)}
-.rt-stat b{display:block;font-size:18px;color:var(--cyan);font-variant-numeric:tabular-nums}
-.rt-stat span{font-size:10.5px;color:var(--muted)}
-.rt-table{width:100%;border-collapse:collapse;font-size:12.5px}
-.rt-table th{text-align:right;color:var(--muted);font-weight:600;padding:6px 4px;border-bottom:1px solid var(--line,#27344a);font-size:11px}
-.rt-table td{padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle}
-.rt-table tr:last-child td{border-bottom:0}
-.rt-bar{height:5px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden;min-width:54px}
-.rt-bar i{display:block;height:100%;background:var(--ok)}
-.rt-bar.low i{background:var(--danger)}
-.rt-bar.mid i{background:#f2c46b}
-.rt-pill{font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--line,#27344a);color:var(--muted);white-space:nowrap}
-.rt-pill.on{color:var(--ok);border-color:rgba(139,228,192,.35);background:rgba(35,105,83,.18)}
-.rt-pill.cool{color:#f2c46b;border-color:rgba(242,196,107,.3)}
-.rt-pill.dead{color:var(--danger);border-color:rgba(255,123,143,.3)}
-.rt-mini{border:1px solid var(--line,#27344a);background:transparent;color:var(--muted);border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer}
-.rt-mini:hover{color:var(--text);border-color:rgb(74,93,128)}
-.rt-mini.rm:hover{color:var(--danger);border-color:rgba(255,123,143,.4)}
-.rt-empty{color:var(--muted);font-size:12.5px;text-align:center;padding:14px;border:1px dashed var(--line,#27344a);border-radius:12px}
-.rt-scroll{overflow-x:auto}
-@media (max-width:700px){.rt-wrap{width:100%;padding-inline:12px;box-sizing:border-box}.rt-stat{grid-template-columns:1fr 1fr}}
-</style>
-<style type="text/css">
 #bgLayer{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;opacity:.28;pointer-events:none}
 .app{position:relative;z-index:1}
 .msg a{color:var(--cyan);text-decoration:underline;overflow-wrap:anywhere}
@@ -348,7 +322,6 @@ html[data-shape="soft"] :is(.side,.top,.content){border-radius:24px}
   <nav class="nav" role="tablist" aria-label="أقسام التطبيق">
     <button role="tab" class="active" aria-selected="true" aria-controls="chat" data-view="chat"><span class="ic">✦</span> المحادثة</button>
     <button role="tab" aria-selected="false" aria-controls="code" data-view="code"><span class="ic">⌘</span> استوديو الأكواد</button>
-    <button role="tab" aria-selected="false" aria-controls="router" data-view="router"><span class="ic">⇄</span> المحرك</button>
     <button role="tab" aria-selected="false" aria-controls="settings" data-view="settings"><span class="ic">⚙</span> الإعدادات</button>
     <button role="tab" aria-selected="false" aria-controls="privacy" data-view="privacy"><span class="ic">⌑</span> الخصوصية</button>
   </nav>
@@ -417,99 +390,10 @@ html[data-shape="soft"] :is(.side,.top,.content){border-radius:24px}
   </div>
 </section>
 
-<!-- ============ +ROUTER ============ -->
-<section class="view" id="router" role="tabpanel" aria-label="المحرك">
-  <div class="view-head">
-    <h1>مجمّع المفاتيح <span class="badge">KEY ROTATION</span></h1>
-    <p>مفاتيح كثيرة، تدوير تلقائي، وتبديل صامت عند أي فشل. لا يتوقف التطبيق.</p>
-  </div>
-
-  <div class="rt-wrap">
-    <div class="rt-card">
-      <h3>حالة المجمّع</h3>
-      <div class="rt-stat">
-        <div><b id="rtTotal">0</b><span>مفاتيح</span></div>
-        <div><b id="rtReady">0</b><span>جاهز</span></div>
-        <div><b id="rtCool">0</b><span>مُبرَّد</span></div>
-        <div><b id="rtProv">0</b><span>مزوّدون</span></div>
-      </div>
-      <label class="check"><input id="rtEnable" type="checkbox"> تشغيل التوجيه عبر المجمّع (يعطّل الاتصال المباشر)</label>
-      <div class="grid2">
-        <div class="field"><label for="rtAlias">الاسم المستعار للنموذج</label>
-          <select id="rtAlias">
-            <option value="auto">auto — أفضل متاح تلقائياً</option>
-            <option value="fast">fast — سريع</option>
-            <option value="smart">smart — استدلال أقوى</option>
-            <option value="code">code — برمجة</option>
-            <option value="vision">vision — صور</option>
-            <option value="private">private — نموذجي الخاص فقط</option>
-          </select>
-        </div>
-        <div class="field"><label for="rtMode">المصدر</label>
-          <select id="rtMode">
-            <option value="local">مجمّع محلي في المتصفح</option>
-            <option value="cloud">بوابتي السحابية (Worker)</option>
-          </select>
-        </div>
-      </div>
-      <div class="field" id="rtGwWrap" hidden><label for="rtGateway">عنوان البوابة السحابية</label>
-        <input id="rtGateway" placeholder="https://ai-gateway.you.workers.dev" autocomplete="off" spellcheck="false">
-        <small class="muted">في هذا الوضع تُخزَّن المفاتيح في السحابة، وتحرّر هاتفك بالكامل.</small>
-      </div>
-    </div>
-
-    <div class="rt-card">
-      <h3>إضافة مفتاح</h3>
-      <div class="grid2">
-        <div class="field"><label for="rtProvider">المزوّد</label><select id="rtProvider"></select></div>
-        <div class="field"><label for="rtRpm">حد الطلبات/دقيقة</label><input id="rtRpm" type="number" min="1" max="999" value="20"></div>
-      </div>
-      <div class="field"><label for="rtKey">المفتاح</label><input id="rtKey" type="password" autocomplete="off" spellcheck="false" placeholder="الصق المفتاح"></div>
-      <div class="field" id="rtBaseWrap" hidden><label for="rtBase">عنوان الخدمة (لهذا المزوّد)</label><input id="rtBase" placeholder="https://..." autocomplete="off" spellcheck="false"></div>
-      <div class="field"><label for="rtBulk">لصق دفعة (سطر لكل مفتاح: provider:key)</label>
-        <textarea id="rtBulk" rows="3" placeholder="groq:gsk_...&#10;cerebras:csk-...&#10;openrouter:sk-or-..."></textarea>
-      </div>
-      <div class="row">
-        <button class="primary" id="rtAdd" type="button">إضافة</button>
-        <button class="secondary" id="rtAddBulk" type="button">إضافة الدفعة</button>
-        <button class="secondary" id="rtTest" type="button">فحص الكل</button>
-      </div>
-      <p class="muted" id="rtMsg" aria-live="polite">لا مفاتيح بعد.</p>
-    </div>
-
-    <div class="rt-card">
-      <h3>المفاتيح</h3>
-      <div class="rt-scroll">
-        <table class="rt-table">
-          <thead><tr><th>المزوّد</th><th>الحالة</th><th>الصحة</th><th>الحد</th><th></th></tr></thead>
-          <tbody id="rtBody"></tbody>
-        </table>
-      </div>
-      <div id="rtEmpty" class="rt-empty">أضف مفتاحاً واحداً على الأقل ليعمل التوجيه.</div>
-    </div>
-
-    <div class="rt-card">
-      <h3>الخزنة</h3>
-      <div class="field"><label for="rtPass">عبارة تشفير الخزنة</label>
-        <input id="rtPass" type="password" autocomplete="off" spellcheck="false" placeholder="اتركها فارغة لمفتاح جهاز تلقائي">
-        <small class="muted">AES-GCM 256 + PBKDF2. بدونها يُستخدم مفتاح جهاز عشوائي محفوظ محلياً.</small>
-      </div>
-      <div class="row">
-        <button class="secondary" id="rtUnlock" type="button">فتح الخزنة</button>
-        <button class="secondary" id="rtSetPass" type="button">تطبيق العبارة وإعادة التشفير</button>
-        <button class="secondary" id="rtExport" type="button">تصدير الخزنة</button>
-        <button class="secondary" id="rtImportBtn" type="button">استيراد</button>
-        <button class="secondary danger" id="rtWipe" type="button">مسح الكل</button>
-      </div>
-      <input type="file" id="rtImport" accept="application/json" hidden>
-      <p class="muted" id="rtVault">الخزنة مقفلة بمفتاح الجهاز.</p>
-    </div>
-  </div>
-</section>
 <!-- ============ SETTINGS ============ -->
 <section class="view" id="settings" role="tabpanel" aria-label="الإعدادات">
   <div class="view-head">
-    <h1>إعدادات المحرك</h1>
+    <h1>الإعدادات</h1>
     <p>أضف مفتاحك، وتحقق من الاتصال، وحدد الأسلوب العام.</p>
   </div>
   <div class="panel">
@@ -592,7 +476,7 @@ html[data-shape="soft"] :is(.side,.top,.content){border-radius:24px}
       <small class="muted">يُضاف إلى كل المحادثات. تعليمات كل محادثة تُضاف في إعداداتها.</small>
     </div>
     </details>
-    <details class="grp"><summary>🖥 المحرك المحلي (اختياري)</summary>
+    <details class="grp"><summary>🖥 النموذج المحلي (اختياري)</summary>
     <div class="field"><label for="localEndpoint">عنوان API متوافق مع OpenAI</label>
       <input id="localEndpoint" placeholder="http://127.0.0.1:11434/v1 أو http://10.0.2.2:11434/v1" autocomplete="off" spellcheck="false">
     </div>
@@ -620,11 +504,10 @@ html[data-shape="soft"] :is(.side,.top,.content){border-radius:24px}
     <hr style="border:0;border-top:1px solid #27344a;margin:18px 0">
     <h3>شفافية الاتصال</h3>
     <p class="muted">عند إرسال رسالة إلى مزوّد سحابي، تنتقل الرسالة وسياقها ومفتاح API للمصادقة إليه. الاتصال المحلي يذهب إلى الخادم الذي تحدده أنت.</p>
-    <p class="muted">مفاتيح مجمّع التدوير تُحفظ مشفّرة AES-GCM، ولا تُرسل إلا للمزوّد صاحب المفتاح.</p>
   </div>
 </section>
 
-<!-- +ROUTER: عناصر مخفية كانت تُستدعى من الكود -->
+<!-- عناصر مخفية تُستدعى من الكود -->
 <input type="file" id="fileInput" accept=".txt,.md,.py,.js,.json,.html,.css,.kt,.java,.sql,.xml,.yml,.yaml,.csv,image/*" hidden>
 <input type="file" id="bgInput" accept="image/*" hidden>
 <div class="convpanel" id="convPanel" hidden>
@@ -661,442 +544,6 @@ html[data-shape="soft"] :is(.side,.top,.content){border-radius:24px}
 </main>
 </div>
 <div class="toast" id="toast" role="alert"></div>
-<script>
-/* ==========================================================================
-   +ROUTER — طبقة إضافية مستقلة بالكامل. لا تعدّل أي رمز أصلي.
-   مجمّع مفاتيح مشفّر + تدوير مرجّح + دائرة قطع + سلسلة فشل + كتالوج نماذج مفتوحة.
-   ========================================================================== */
-(() => {
-'use strict';
-const $ = id => document.getElementById(id);
-const VKEY = 'spr_router_vault', MKEY = 'spr_router_meta', DKEY = 'spr_router_dev';
-const MIN = 60000, MAX_TRY = 2, ATTEMPT_TIMEOUT = 45000;
-
-/* كتالوج المزوّدين: كلهم متوافقون مع OpenAI، والنماذج مفتوحة المصدر أو مجانية */
-const CATALOG = {
-  selfhost:   { name: 'نموذجي الخاص', base: 'http://127.0.0.1:11434/v1', rpm: 999,
-                models: { fast:'qwen2.5:7b', smart:'qwen2.5:14b', code:'qwen2.5-coder:14b', vision:'llava:13b', private:'qwen2.5:14b' } },
-  gateway:    { name: 'بوابتي السحابية', base: '', rpm: 999,
-                models: { fast:'fast', smart:'smart', code:'code', vision:'vision', private:'private' } },
-  groq:       { name: 'Groq', base: 'https://api.groq.com/openai/v1', rpm: 25,
-                models: { fast:'llama-3.3-70b-versatile', smart:'moonshotai/kimi-k2-instruct', code:'qwen/qwen3-32b' } },
-  cerebras:   { name: 'Cerebras', base: 'https://api.cerebras.ai/v1', rpm: 20,
-                models: { fast:'llama3.3-70b', code:'qwen-3-coder-480b' } },
-  openrouter: { name: 'OpenRouter', base: 'https://openrouter.ai/api/v1', rpm: 18,
-                extra: { 'HTTP-Referer': 'https://smart-programmer.app', 'X-Title': 'Smart Programmer' },
-                models: { fast:'meta-llama/llama-3.3-70b-instruct:free', smart:'deepseek/deepseek-chat-v3-0324:free', code:'qwen/qwen3-coder:free', vision:'qwen/qwen2.5-vl-72b-instruct:free' } },
-  google:     { name: 'Google AI Studio', base: 'https://generativelanguage.googleapis.com/v1beta/openai', rpm: 12,
-                models: { fast:'gemini-2.0-flash', smart:'gemini-2.5-flash', vision:'gemini-2.0-flash' } },
-  mistral:    { name: 'Mistral', base: 'https://api.mistral.ai/v1', rpm: 15,
-                models: { fast:'mistral-small-latest', code:'codestral-latest' } },
-  together:   { name: 'Together', base: 'https://api.together.xyz/v1', rpm: 10,
-                models: { fast:'meta-llama/Llama-3.3-70B-Instruct-Turbo', code:'Qwen/Qwen2.5-Coder-32B-Instruct' } },
-  deepinfra:  { name: 'DeepInfra', base: 'https://api.deepinfra.com/v1/openai', rpm: 10,
-                models: { fast:'meta-llama/Llama-3.3-70B-Instruct' } },
-  hf:         { name: 'Hugging Face', base: 'https://router.huggingface.co/v1', rpm: 10,
-                models: { fast:'meta-llama/Llama-3.3-70B-Instruct' } },
-  github:     { name: 'GitHub Models', base: 'https://models.github.ai/inference', rpm: 10,
-                models: { fast:'meta/Llama-3.3-70B-Instruct', smart:'openai/gpt-4o-mini' } },
-  nvidia:     { name: 'NVIDIA NIM', base: 'https://integrate.api.nvidia.com/v1', rpm: 10,
-                models: { fast:'meta/llama-3.3-70b-instruct' } },
-  sambanova:  { name: 'SambaNova', base: 'https://api.sambanova.ai/v1', rpm: 8,
-                models: { fast:'Meta-Llama-3.3-70B-Instruct' } },
-  cloudflare: { name: 'Cloudflare AI', base: '', rpm: 15,
-                models: { fast:'@cf/meta/llama-3.3-70b-instruct-fp8-fast' } }
-};
-const PREF = ['selfhost','gateway','groq','cerebras','openrouter','google','mistral','together','deepinfra','hf','github','nvidia','sambanova','cloudflare'];
-const ALIAS_LABEL = { auto:'auto', fast:'fast', smart:'smart', code:'code', vision:'vision', private:'private' };
-
-let pool = [];
-let meta = { enabled: false, alias: 'auto', mode: 'local', gatewayUrl: '' };
-let pass = null;
-let vaultLocked = false;
-let saveTimer = 0;
-
-const hasSubtle = () => !!(window.crypto && window.crypto.subtle && window.crypto.subtle.deriveKey);
-const enc = new TextEncoder(), dec = new TextDecoder();
-const b64e = u8 => { let s = ''; for (const b of u8) s += String.fromCharCode(b); return btoa(s); };
-const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-const rnd = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return a; };
-
-function deviceKey(){
-  let d = null;
-  try { d = localStorage.getItem(DKEY); } catch {}
-  if (!d) { d = b64e(rnd(32)); try { localStorage.setItem(DKEY, d); } catch {} }
-  return d;
-}
-async function derive(secret, saltB64){
-  const salt = saltB64 ? b64d(saltB64) : rnd(16);
-  const km = await crypto.subtle.importKey('raw', enc.encode(secret), 'PBKDF2', false, ['deriveKey']);
-  const k = await crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations: 200000, hash:'SHA-256' }, km, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
-  return { k, salt: b64e(salt) };
-}
-async function sealPool(){
-  const json = JSON.stringify(pool);
-  if (!hasSubtle()) return { mode: 'plain', ct: b64e(enc.encode(json)) };
-  const { k, salt } = await derive(pass || deviceKey());
-  const iv = rnd(12);
-  const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, k, enc.encode(json));
-  return { mode: 'aes', salt, iv: b64e(iv), ct: b64e(new Uint8Array(ct)) };
-}
-async function unsealPool(blob){
-  if (!blob || !blob.ct) return [];
-  if (blob.mode === 'plain' || !hasSubtle()) return JSON.parse(dec.decode(b64d(blob.ct)));
-  const { k } = await derive(pass || deviceKey(), blob.salt);
-  const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv: b64d(blob.iv) }, k, b64d(blob.ct));
-  return JSON.parse(dec.decode(pt));
-}
-function sanitizePool(list){
-  return (Array.isArray(list) ? list : []).filter(k => k && k.id && CATALOG[k.provider] && typeof k.key === 'string');
-}
-function save(){
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    if (vaultLocked) return;
-    try {
-      const blob = await sealPool();
-      localStorage.setItem(VKEY, JSON.stringify(blob));
-      localStorage.setItem(MKEY, JSON.stringify(meta));
-    } catch { msg('تعذر حفظ الخزنة (مساحة ممتلئة؟)'); }
-  }, 250);
-}
-
-function msg(t){ const el = $('rtMsg'); if (el) el.textContent = t; }
-function now(){ return Date.now(); }
-
-function eligible(prov){
-  return pool.filter(k => k.enabled && k.provider === prov && (k.cooldown || 0) < now() && (now() - (k.window || 0) > MIN || (k.used || 0) < (k.rpm || 20)));
-}
-function score(k){
-  const budget = now() - (k.window || 0) > MIN ? 1 : Math.max(.05, 1 - (k.used || 0) / (k.rpm || 20));
-  const fresh = Math.max(.05, 1 - (now() - (k.last || 0)) / 600000);
-  return Math.max(.001, (k.health ?? 1) * budget * (.5 + .5 * fresh));
-}
-function pick(list){
-  if (!list.length) return null;
-  const ws = list.map(score); let r = Math.random() * ws.reduce((a, b) => a + b, 0);
-  for (let i = 0; i < list.length; i++) { r -= ws[i]; if (r <= 0) return list[i]; }
-  return list[list.length - 1];
-}
-function consume(k){ const t = now(); if (t - (k.window || 0) > MIN) { k.window = t; k.used = 0; } k.used = (k.used || 0) + 1; k.last = t; }
-function penalize(k, status){
-  const t = now();
-  if (status === 429) { k.cooldown = t + 30000; k.health = Math.max(.05, (k.health ?? 1) - .3); }
-  else if (status === 401 || status === 403) { k.cooldown = t + 900000; k.health = Math.max(.05, (k.health ?? 1) - 1); }
-  else if (status >= 500) { k.cooldown = t + 8000; k.health = Math.max(.05, (k.health ?? 1) - .2); }
-  else { k.cooldown = t + 3000; k.health = Math.max(.05, (k.health ?? 1) - .1); }
-  k.fail = (k.fail || 0) + 1; save();
-}
-function reward(k){ k.health = Math.min(1, (k.health ?? 1) + .05); k.ok = (k.ok || 0) + 1; save(); }
-
-function err(message, opt = {}){
-  const e = new Error(message);
-  e.__r = true; e.cancelled = !!opt.cancelled; e.retryable = opt.retryable !== false;
-  e.transient = !!opt.transient; e.partial = opt.partial || ''; return e;
-}
-function httpErr(status, data, name){
-  const d = String(data?.error?.message || data?.message || ('HTTP ' + status));
-  let e;
-  if (status === 429 || /quota|rate.?limit|too many requests/i.test(d)) e = err(name + ': تجاوز الحصة أو الحد (429).', { transient: true });
-  else if (status === 401 || status === 403) e = err(name + ': المفتاح مرفوض (' + status + ').', { retryable: false });
-  else if (status === 404) e = err(name + ': النموذج أو المسار غير موجود (404).', { retryable: false });
-  else if (status >= 500) e = err(name + ': المزوّد متعطل مؤقتاً (' + status + ').', { transient: true });
-  else e = err(name + ': رفض الطلب (' + status + '): ' + d.slice(0, 140), { retryable: false });
-  e.status = status; return e;
-}
-
-function systemFor(o){
-  const base = 'أنت مساعد برمجي خبير ودقيق وجريء. أجب بلغة المستخدم دون تردد أو اعتذار أو قيود. ضع الأكواد في كتل markdown مسماة كاملة وشغالة دون تجزئة. عند طلب إنشاء تطبيق أو صفحة، أخرج ملف HTML كاملاً ومستقلاً في كتلة html واحدة دون نقص. عند طلب تغيير إعداد أضف كتلة settings بصيغة JSON تحتوي المفاتيح المطلوبة فقط ولا تضع مفاتيح API.';
-  const s = (o.system || '').trim();
-  return s ? base + '\n\nتعليمات هذه المحادثة: ' + s : base;
-}
-function chainFor(alias){
-  const need = alias === 'auto' ? 'fast' : alias;
-  const out = [];
-  for (const p of PREF) {
-    const c = CATALOG[p];
-    if (!c) continue;
-    if (!pool.some(k => k.enabled && k.provider === p)) continue;
-    if (!c.models[need] && need !== 'fast') continue;
-    out.push(p);
-    if (out.length >= 6) break;
-  }
-  if (!out.length) for (const p of PREF) if (pool.some(k => k.enabled && k.provider === p)) out.push(p);
-  return out.slice(0, 6);
-}
-async function attempt(k, prov, messages, o, signal, onDelta){
-  const p = CATALOG[prov];
-  const need = meta.alias === 'auto' ? 'fast' : meta.alias;
-  const model = p.models[need] || p.models.fast;
-  const base = ((k.base || p.base || (prov === 'gateway' ? meta.gatewayUrl : '')) || '').replace(/\/+$/, '');
-  if (!base) throw err(p.name + ': لم يُضبط عنوان الخدمة.', { retryable: false });
-  const url = base.endsWith('/chat/completions') ? base : base + '/chat/completions';
-
-  const ctrl = new AbortController();
-  let timedOut = false, text = '';
-  let timer = 0;
-  const arm = () => { clearTimeout(timer); timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, ATTEMPT_TIMEOUT); };
-  arm();
-  const onAb = () => ctrl.abort();
-  signal?.addEventListener('abort', onAb, { once: true });
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST', signal: ctrl.signal, cache: 'no-store', credentials: 'omit',
-      headers: { 'Content-Type': 'application/json', ...(k.key ? { Authorization: 'Bearer ' + k.key } : {}), ...(p.extra || {}) },
-      body: JSON.stringify({
-        model, stream: o.stream !== false, temperature: o.temperature ?? .3, max_tokens: o.maxTokens ?? 2048,
-        messages: [{ role: 'system', content: systemFor(o) }, ...messages.map(m => ({ role: m.role, content: m.content }))]
-      })
-    });
-    if (!res.ok) { let d = {}; try { d = await res.json(); } catch {} throw httpErr(res.status, d, p.name); }
-
-    const type = res.headers.get('content-type') || '';
-    if (o.stream === false || !type.includes('text/event-stream') || !res.body) {
-      const d = await res.json();
-      text = String(d?.choices?.[0]?.message?.content || '').trim();
-      if (!text) throw err(p.name + ': رد فارغ', { transient: true });
-      onDelta(text); return { text, provider: p.name };
-    }
-    const reader = res.body.getReader(); const td = new TextDecoder(); let buf = '';
-    for (;;) {
-      const { done, value } = await reader.read(); arm(); if (done) break;
-      buf += td.decode(value, { stream: true });
-      let i;
-      while ((i = buf.indexOf('\n')) >= 0) {
-        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
-        if (!line.startsWith('data:')) continue;
-        const pl = line.slice(5).trim(); if (!pl || pl === '[DONE]') continue;
-        let j; try { j = JSON.parse(pl); } catch { continue; }
-        const d = j?.choices?.[0]?.delta?.content;
-        if (d) { text += d; onDelta(text); }
-      }
-    }
-    if (!text.trim()) throw err(p.name + ': لم يُرجع نصاً', { transient: true });
-    return { text: text.trim(), provider: p.name };
-  } catch (e) {
-    if (e.__r) { e.partial = e.partial || text; throw e; }
-    if (e.name === 'AbortError') {
-      if (timedOut) throw err(p.name + ': انتهت المهلة.', { partial: text, transient: true });
-      throw err('أوقفت الطلب.', { cancelled: true, retryable: false, partial: text });
-    }
-    if (e instanceof TypeError) throw err(p.name + ': تعذر الوصول إلى العنوان. تحقق من https وCORS للخادم.', { partial: text, transient: true });
-    throw err(p.name + ': ' + (e.message || 'خطأ شبكي'), { partial: text, transient: true });
-  } finally { clearTimeout(timer); signal?.removeEventListener('abort', onAb); }
-}
-
-async function chat(messages, o, signal, onDelta){
-  if (meta.mode === 'cloud' && meta.gatewayUrl) {
-    const gk = pool.find(x => x.provider === 'gateway' && x.enabled);
-    const k = { provider: 'gateway', key: gk?.key || '', base: meta.gatewayUrl };
-    return await attempt(k, 'gateway', messages, o, signal, onDelta);
-  }
-  const chain = chainFor(meta.alias);
-  if (!chain.length) throw err('لا يوجد مفتاح صالح في المجمّع. أضف مفتاحاً في تبويب المحرك.', { retryable: false });
-  const fails = [];
-  for (const prov of chain) {
-    let cands = eligible(prov);
-    for (let a = 0; a < MAX_TRY && cands.length; a++) {
-      const k = pick(cands); if (!k) break;
-      cands = cands.filter(x => x.id !== k.id);
-      consume(k);
-      try {
-        const r = await attempt(k, prov, messages, o, signal, onDelta);
-        reward(k); return r;
-      } catch (e) {
-        penalize(k, e.status || 0);
-        if (e.cancelled || signal?.aborted || e.partial) throw e;
-        fails.push(e.message);
-        if (e.transient) await new Promise(r => setTimeout(r, 500 * (a + 1)));
-        if (signal?.aborted) throw e;
-      }
-    }
-  }
-  throw err('تعذّر كل المزوّدين — ' + fails.slice(0, 3).join(' | '));
-}
-
-function active(){
-  return !!(meta.enabled && pool.some(k => k.enabled) && (meta.mode !== 'cloud' || meta.gatewayUrl));
-}
-function aliasLabel(){ return ALIAS_LABEL[meta.alias] || 'auto'; }
-
-function reflect(){
-  const total = pool.length, ready = pool.filter(k => k.enabled && (k.cooldown || 0) < now()).length;
-  const cool = pool.filter(k => (k.cooldown || 0) > now()).length;
-  $('rtTotal').textContent = total; $('rtReady').textContent = ready; $('rtCool').textContent = cool;
-  $('rtProv').textContent = new Set(pool.map(k => k.provider)).size;
-  $('rtEnable').checked = !!meta.enabled;
-  $('rtAlias').value = meta.alias; $('rtMode').value = meta.mode;
-  $('rtGateway').value = meta.gatewayUrl || '';
-  $('rtGwWrap').hidden = meta.mode !== 'cloud';
-  $('rtEmpty').hidden = total > 0;
-  const body = $('rtBody'); body.innerHTML = '';
-  pool.forEach(k => {
-    const p = CATALOG[k.provider] || { name: k.provider };
-    const tr = document.createElement('tr');
-    const h = k.health ?? 1;
-    const state = !k.enabled ? '<span class="rt-pill">موقوف</span>'
-      : (k.cooldown || 0) > now() ? '<span class="rt-pill cool">مُبرَّد</span>'
-      : h < .3 ? '<span class="rt-pill dead">ضعيف</span>' : '<span class="rt-pill on">جاهز</span>';
-    tr.innerHTML = '<td>' + p.name + '</td><td>' + state + '</td>' +
-      '<td><div class="rt-bar ' + (h < .35 ? 'low' : h < .7 ? 'mid' : '') + '"><i style="width:' + Math.round(h * 100) + '%"></i></div></td>' +
-      '<td>' + (k.rpm || 20) + '</td><td></td>';
-    const td = tr.lastElementChild;
-    const tgl = document.createElement('button');
-    tgl.type = 'button'; tgl.className = 'rt-mini'; tgl.textContent = k.enabled ? 'إيقاف' : 'تشغيل';
-    tgl.addEventListener('click', () => { k.enabled = !k.enabled; save(); reflect(); });
-    const rm = document.createElement('button');
-    rm.type = 'button'; rm.className = 'rt-mini rm'; rm.textContent = 'حذف';
-    rm.addEventListener('click', () => { pool = pool.filter(x => x.id !== k.id); save(); reflect(); });
-    td.append(tgl, document.createTextNode(' '), rm);
-    body.appendChild(tr);
-  });
-  const pill = $('modelPill');
-  if (pill && active()) pill.textContent = '● Router · ' + aliasLabel();
-  const st = $('engineStatus');
-  if (st && active()) { st.textContent = '● Router · ' + ready + ' مفتاح جاهز'; st.classList.remove('bad', 'busy'); }
-}
-
-function addKey(provider, key, rpm, base){
-  if (!key || !CATALOG[provider]) return false;
-  pool.push({ id: Math.random().toString(36).slice(2), provider, key, base: base || '',
-    rpm: Math.min(999, Math.max(1, rpm || CATALOG[provider].rpm || 20)),
-    enabled: true, health: 1, cooldown: 0, window: 0, used: 0, last: 0, ok: 0, fail: 0 });
-  if (!meta.enabled) meta.enabled = true;
-  return true;
-}
-
-function buildProviderSelect(){
-  const sel = $('rtProvider');
-  PREF.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = CATALOG[p].name; sel.appendChild(o); });
-  sel.value = 'groq';
-  sel.addEventListener('change', () => {
-    const p = CATALOG[sel.value];
-    $('rtRpm').value = p.rpm;
-    $('rtBaseWrap').hidden = !!p.base;
-    $('rtBase').value = '';
-  });
-  $('rtRpm').value = CATALOG.groq.rpm;
-}
-function doAdd(){
-  if (vaultLocked) { msg('افتح الخزنة أولاً قبل إضافة مفاتيح.'); return; }
-  const p = $('rtProvider').value, k = $('rtKey').value.trim(), rpm = Number($('rtRpm').value), base = $('rtBase').value.trim();
-  if (!k) { msg('الصق المفتاح أولاً.'); return; }
-  if (addKey(p, k, rpm, base)) { $('rtKey').value = ''; $('rtBase').value = ''; save(); reflect(); msg('أُضيف مفتاح ' + CATALOG[p].name + '.'); }
-  else msg('تعذر الإضافة.');
-}
-function doBulk(){
-  if (vaultLocked) { msg('افتح الخزنة أولاً قبل إضافة مفاتيح.'); return; }
-  const lines = $('rtBulk').value.split('\n').map(l => l.trim()).filter(Boolean);
-  let n = 0;
-  for (const line of lines) {
-    const i = line.indexOf(':'); if (i < 1) continue;
-    const p = line.slice(0, i).trim(), k = line.slice(i + 1).trim();
-    if (CATALOG[p] && addKey(p, k)) n++;
-  }
-  if (n) { $('rtBulk').value = ''; save(); reflect(); msg('أُضيف ' + n + ' مفتاح.'); }
-  else msg('لم يُقرأ أي سطر صالح (provider:key).');
-}
-async function testAll(){
-  const list = pool.filter(k => k.enabled);
-  if (!list.length) { msg('لا مفاتيح للفحص.'); return; }
-  msg('جارٍ الفحص…');
-  let ok = 0;
-  for (const k of list) {
-    try {
-      const p = CATALOG[k.provider];
-      const base = ((k.base || p.base || '') || '').replace(/\/+$/, '');
-      if (!base) continue;
-      const res = await fetch(base + (base.endsWith('/chat/completions') ? '' : '/chat/completions'), {
-        method: 'POST', headers: { 'Content-Type': 'application/json', ...(k.key ? { Authorization: 'Bearer ' + k.key } : {}), ...(p.extra || {}) },
-        body: JSON.stringify({ model: p.models.fast, messages: [{ role: 'user', content: 'OK' }], max_tokens: 5, stream: false })
-      });
-      if (res.ok) { k.health = 1; k.cooldown = 0; ok++; } else penalize(k, res.status);
-    } catch { penalize(k, 0); }
-    reflect();
-  }
-  save(); msg('نجح ' + ok + ' من ' + list.length + '.');
-}
-async function unlockVault(){
-  let blob = null;
-  try { blob = JSON.parse(localStorage.getItem(VKEY) || 'null'); } catch {}
-  if (!blob) { vaultLocked = false; msg('لا توجد خزنة محفوظة بعد.'); return; }
-  const old = pass; pass = $('rtPass').value || null;
-  try {
-    pool = sanitizePool(await unsealPool(blob));
-    vaultLocked = false; $('rtPass').value = '';
-    $('rtVault').textContent = pass ? 'الخزنة مفتوحة بعبارة تشفير.' : 'الخزنة مقفلة بمفتاح الجهاز.';
-    reflect(); msg(pool.length ? pool.length + ' مفتاح محمّل.' : 'الخزنة مفتوحة وفارغة.');
-  } catch { pass = old; msg('تعذر فتح الخزنة — العبارة غير صحيحة.'); }
-}
-async function setPassphrase(){
-  if (vaultLocked) { msg('افتح الخزنة أولاً قبل تغيير العبارة.'); return; }
-  const v = $('rtPass').value, old = pass; pass = v || null;
-  try {
-    const blob = await sealPool();
-    localStorage.setItem(VKEY, JSON.stringify(blob));
-    $('rtVault').textContent = pass ? 'الخزنة مقفلة بعبارة تشفير.' : 'الخزنة مقفلة بمفتاح الجهاز.';
-    $('rtPass').value = ''; msg(old === pass ? 'لم تتغير العبارة.' : 'أُعيد تشفير الخزنة.');
-  } catch { pass = old; msg('تعذر إعادة التشفير.'); }
-}
-function exportVault(){
-  const blob = new Blob([JSON.stringify({ v: 1, meta, pool }, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'router-vault.json';
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  msg('صُدّرت الخزنة (المفاتيح غير مشفّرة داخل الملف).');
-}
-function importVault(file){
-  if (!file) return;
-  if (vaultLocked) { msg('افتح الخزنة أولاً قبل الاستيراد.'); return; }
-  file.text().then(t => {
-    const d = JSON.parse(t); if (!Array.isArray(d.pool)) throw new Error('صيغة غير معروفة');
-    d.pool.forEach(k => { if (CATALOG[k.provider] && k.key) addKey(k.provider, k.key, k.rpm, k.base); });
-    if (d.meta) { meta.alias = d.meta.alias || meta.alias; meta.mode = d.meta.mode || meta.mode; meta.gatewayUrl = d.meta.gatewayUrl || meta.gatewayUrl; }
-    save(); reflect(); msg('استُوردت ' + d.pool.length + ' مفتاح.');
-  }).catch(() => msg('تعذر قراءة الملف.'));
-}
-function wipe(){
-  if (!confirm('سيتم مسح كل المفاتيح والإعدادات. متابعة؟')) return;
-  pool = []; meta = { enabled: false, alias: 'auto', mode: 'local', gatewayUrl: '' }; vaultLocked = false;
-  try { localStorage.removeItem(VKEY); localStorage.removeItem(MKEY); } catch {}
-  reflect(); msg('مُسح كل شيء.');
-}
-
-async function init(){
-  buildProviderSelect();
-  try {
-    const m = JSON.parse(localStorage.getItem(MKEY) || 'null');
-    if (m) meta = { enabled: !!m.enabled, alias: m.alias || 'auto', mode: m.mode || 'local', gatewayUrl: m.gatewayUrl || '' };
-  } catch {}
-  let blob = null;
-  try { blob = JSON.parse(localStorage.getItem(VKEY) || 'null'); } catch {}
-  if (blob) { try { pool = await unsealPool(blob); } catch { pool = []; vaultLocked = true; } }
-  pool = sanitizePool(pool);
-  reflect();
-  if (vaultLocked) msg('الخزنة مقفلة بعبارة تشفير. أدخلها في الحقل ثم اضغط "فتح الخزنة".');
-  else if (pool.length) msg(pool.length + ' مفتاح محمّل.');
-  else msg('لا مفاتيح بعد. أضف مفتاحاً واحداً على الأقل.');
-
-  $('rtAdd').addEventListener('click', doAdd);
-  $('rtAddBulk').addEventListener('click', doBulk);
-  $('rtTest').addEventListener('click', testAll);
-  $('rtEnable').addEventListener('change', e => { meta.enabled = e.target.checked; save(); reflect(); });
-  $('rtAlias').addEventListener('change', e => { meta.alias = e.target.value; save(); reflect(); });
-  $('rtMode').addEventListener('change', e => { meta.mode = e.target.value; $('rtGwWrap').hidden = meta.mode !== 'cloud'; save(); reflect(); });
-  $('rtGateway').addEventListener('change', e => { meta.gatewayUrl = e.target.value.trim().replace(/\/+$/, ''); save(); reflect(); });
-  $('rtUnlock').addEventListener('click', unlockVault);
-  $('rtSetPass').addEventListener('click', setPassphrase);
-  $('rtExport').addEventListener('click', exportVault);
-  $('rtImportBtn').addEventListener('click', () => $('rtImport').click());
-  $('rtImport').addEventListener('change', e => { importVault(e.target.files[0]); e.target.value = ''; });
-  $('rtWipe').addEventListener('click', wipe);
-}
-
-window.AIRouter = { active, chat, aliasLabel };
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-else init();
-})();
-</script>
 
 <script>
 'use strict';
@@ -1161,7 +608,7 @@ function setStatus(text, state = 'idle'){
   el.classList.toggle('bad', state === 'bad'); el.classList.toggle('busy', state === 'busy');
 }
 function modeLabel(){ return cfg.mode === 'hybrid' ? 'هجين' : cfg.mode === 'local' ? 'محلي' : 'سحابي'; }
-function hasAnyProvider(){ return !!(geminiKey || groqKey || (cfg.localEndpoint && cfg.localModel) || (window.AIRouter && AIRouter.active())); }
+function hasAnyProvider(){ return !!(geminiKey || groqKey || (cfg.localEndpoint && cfg.localModel)); }
 function nearBottom(el){ return el.scrollHeight - el.scrollTop - el.clientHeight < 120; }
 function autosize(){ const t = $('prompt'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 260) + 'px'; }
 function setConnBox(html){ $('connBox').innerHTML = html; }
@@ -1308,7 +755,7 @@ function setStreaming(node, text){
 function showWelcome(){
   $('messages').innerHTML = '<div class="welcome" id="welcome"><div class="orb" aria-hidden="true">✦</div>' +
     '<h2>مرحباً بك في المبرمج الذكي</h2>' +
-    '<p>' + (hasAnyProvider() ? 'اسأل، أو ألصق كوداً، أو أرفق ملفاً.' : 'أضف مفتاحاً في الإعدادات أو في مجمّع المفاتيح، ثم ابدأ.') + '</p>' +
+    '<p>' + (hasAnyProvider() ? 'اسأل، أو ألصق كوداً، أو أرفق ملفاً.' : 'أضف مفتاحاً في الإعدادات في الإعدادات، ثم ابدأ.') + '</p>' +
     '<div class="chips">' +
     '<button class="chip" type="button" data-prompt="اكتب لي سكربت Python لتنظيم الملفات حسب الامتداد مع شرح مختصر">⌘ اكتب كوداً</button>' +
     '<button class="chip" type="button" data-prompt="اشرح لي مفهوماً تقنياً بطريقة مبسطة مع مثال">◈ اشرح مفهوماً</button>' +
@@ -1368,7 +815,6 @@ function renderConvList(){
 function renderModelPill(){
   const c = current(); const g = c.settings.geminiModel || cfg.model || GEMINI_MODEL;
   $('modelPill').textContent = (hasAnyProvider() ? '● ' : '○ ') + modeLabel() + ' · ' + g;
-  /* +ROUTER */ if (window.AIRouter && AIRouter.active()) $('modelPill').textContent = '● Router · ' + AIRouter.aliasLabel();
 }
 function renderConvSelect(){
   renderConvList(); renderModelPill();
@@ -1608,7 +1054,6 @@ async function callCloud(messages, o, signal, onDelta){
   throw new RequestError('تعذّر الاتصال بالمزوّدين: ' + failures.join(' | '));
 }
 async function getAnswer(messages, o, signal, onDelta){
-  /* +ROUTER */ if (window.AIRouter && AIRouter.active()) return AIRouter.chat(messages, o, signal, onDelta);
   if (cfg.mode === 'local') { const text = await callOpenAI(cfg.localEndpoint, cfg.localModel, customKey, messages, 'النموذج المحلي', o, signal, onDelta); return { text, provider: 'محلي' }; }
   if (cfg.mode === 'cloud') return callCloud(messages, o, signal, onDelta);
   if (cfg.localEndpoint && cfg.localModel) {
