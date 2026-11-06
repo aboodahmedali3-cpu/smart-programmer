@@ -351,8 +351,17 @@ html[data-shape="soft"] .side, html[data-shape="soft"] .top, html[data-shape="so
 .rt-scroll { overflow-x: auto; }
 @media (max-width: 700px) { .rt-wrap { width: 100%; padding-inline: 12px; box-sizing: border-box; } .rt-stat { grid-template-columns: 1fr 1fr; } }
 </style>
+<style type="text/css">
+#bgLayer{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;opacity:.28;pointer-events:none}
+.app{position:relative;z-index:1}
+.msg a{color:var(--cyan);text-decoration:underline;overflow-wrap:anywhere}
+.imgprev{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:2px 4px}
+.imgprev img{max-height:64px;max-width:120px;border-radius:10px;border:1px solid var(--line,#27344a)}
+.msgimg{display:block;max-width:240px;max-height:240px;border-radius:14px;margin:0 0 6px}
+</style>
 </head>
 <body>
+<div id="bgLayer" aria-hidden="true"></div>
 <div class="app">
 <aside class="side" id="sidebar">
   <div class="sidehead"><div class="logo" aria-hidden="true">م</div><b>المبرمج الذكي</b></div>
@@ -386,9 +395,11 @@ html[data-shape="soft"] .side, html[data-shape="soft"] .top, html[data-shape="so
     <div class="composebox">
       <label class="sr-only" for="prompt">رسالتك</label>
       <textarea id="prompt" rows="1" placeholder="اكتب رسالتك إلى المبرمج الذكي…"></textarea>
+      <div class="imgprev" id="imgPrev" hidden></div>
       <div class="composebar">
         <div class="leftbar">
           <button class="iconbtn" id="attachBtn" type="button" aria-label="إرفاق ملف نصي" title="إرفاق ملف">＋</button>
+          <button class="iconbtn" id="imgBtn" type="button" aria-label="إرفاق صورة" title="إرفاق صورة">🖼</button>
           <span class="modelpill" id="modelPill" title="النموذج الحالي">○ محلي</span>
         </div>
         <button class="send" id="sendBtn" type="button" aria-label="إرسال">↑</button>
@@ -598,6 +609,10 @@ html[data-shape="soft"] .side, html[data-shape="soft"] .top, html[data-shape="so
         <option value="engineer">مهندس برمجيات: كود كامل وشرح موجز</option>
       </select>
     </div>
+    <div class="field"><label>خلفية التطبيق (صورة حتى 3 ميجابايت)</label>
+      <div class="row"><button class="secondary" id="bgPickBtn" type="button">اختيار صورة</button><button class="secondary" id="bgClearBtn" type="button">إزالة الخلفية</button></div>
+      <small class="muted">تُحفظ الخلفية على هذا الجهاز فقط.</small>
+    </div>
     <div class="field"><label for="persona">أسلوب المساعد العام (اختياري)</label>
       <textarea id="persona" maxlength="1000" placeholder="مثال: رد باختصار، وقدّم الكود أولاً ثم الشرح."></textarea>
       <small class="muted">يُضاف إلى كل المحادثات. تعليمات كل محادثة تُضاف في إعداداتها.</small>
@@ -637,6 +652,8 @@ html[data-shape="soft"] .side, html[data-shape="soft"] .top, html[data-shape="so
 
 <!-- +ROUTER: عناصر مخفية كانت تُستدعى من الكود -->
 <input type="file" id="fileInput" accept=".txt,.md,.py,.js,.json,.html,.css,.kt,.java,.sql,.xml,.yml,.yaml,.csv" hidden>
+<input type="file" id="imgInput" accept="image/*" hidden>
+<input type="file" id="bgInput" accept="image/*" hidden>
 <div class="convpanel" id="convPanel" hidden>
   <div class="sec">
     <div class="field"><label for="convTitle">عنوان المحادثة</label><input id="convTitle" maxlength="80"></div>
@@ -682,7 +699,7 @@ const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1';
 const GEMINI_MODEL = 'gemini-3-flash-preview';
 const RETIRED_GEMINI = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-2.0-flash'];
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
-const MAX_CONVS = 40, MAX_TURNS = 200, MAX_INPUT = 10000000, MAX_CODE = 200000, MAX_FILE = 10 * 1024 * 1024, MAX_PERSONA = 1000, MAX_SYSTEM = 2000;
+const MAX_CONVS = 40, MAX_TURNS = 200, MAX_INPUT = 10000000, MAX_CODE = 2000000, MAX_FILE = 10 * 1024 * 1024, MAX_PERSONA = 1000, MAX_SYSTEM = 2000;
 const REQUEST_TIMEOUT = 90000;
 const CONVS_KEY = 'smart_programmer_convs';
 const LEGACY_HISTORY_KEY = 'smart_programmer_history';
@@ -701,7 +718,7 @@ const BASE_PROMPT = 'أنت مساعد برمجي دقيق ومتخصص. أجب 
   'ضع الأكواد داخل كتل markdown محددة باسم اللغة. اذكر الافتراضات بوضوح وشفافية وبلا قيود أو رفض، ولا تخترع مكتبات أو واجهات برمجية غير موجودة، ' +
   'وإذا كانت المعلومات غير كافية فاطلبها بدلاً من التخمين. اشرح الأخطاء وسببها قبل الحل.';
 const EXT = { python:'py', javascript:'js', html:'html', css:'css', kotlin:'kt', java:'java', sql:'sql' };
-const DEFAULT_CONV_SETTINGS = { geminiModel:'', groqModel:'', system:'', temperature:0.3, maxTokens:2048, context:20, stream:true };
+const DEFAULT_CONV_SETTINGS = { geminiModel:'', groqModel:'', system:'', temperature:0.3, maxTokens:8192, context:20, stream:true };
 
 let convs = [];
 let activeId = null;
@@ -743,8 +760,15 @@ function nearBottom(el){ return el.scrollHeight - el.scrollTop - el.clientHeight
 function autosize(){ const t = $('prompt'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 260) + 'px'; }
 function setConnBox(html){ $('connBox').innerHTML = html; }
 
+const CONTINUE_PROMPT = 'أكمل من حيث توقفت تماماً دون تكرار أي جزء سابق، ودون مقدمة.';
+function isTruncated(t){ return ((t || '').match(/```/g) || []).length % 2 === 1; }
 function esc(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function inline(s){ return esc(s).replace(/`([^`\n]+)`/g, '<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>'); }
+function inline(s){
+  return esc(s)
+    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+    .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>')
+    .replace(/`([^`\n]+)`/g, '<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+}
 function legacyCopy(text){
   const ta = document.createElement('textarea');
   ta.value = text; ta.setAttribute('readonly', '');
@@ -773,16 +797,33 @@ function copyText(text){
   if (window.isSecureContext && navigator.clipboard?.writeText) return navigator.clipboard.writeText(text).catch(() => legacyCopy(text).catch(failed));
   return legacyCopy(text).catch(failed);
 }
+const LANG_EXT = { python:'py', javascript:'js', typescript:'ts', html:'html', css:'css', json:'json', kotlin:'kt', java:'java', sql:'sql', bash:'sh', shell:'sh', markdown:'md', md:'md', xml:'xml', yaml:'yml', yml:'yml', text:'txt' };
 function buildCodeBlock(lang, code){
   const wrap = document.createElement('div'); wrap.className = 'codewrap';
   const head = document.createElement('div'); head.className = 'codehead';
   const label = document.createElement('span'); label.textContent = lang || 'code';
+  const l = (lang || '').toLowerCase();
   const btn = document.createElement('button'); btn.type = 'button'; btn.textContent = 'نسخ';
   btn.addEventListener('click', () => {
     copyText(code).then(() => { btn.textContent = 'تم النسخ ✓'; setTimeout(() => { btn.textContent = 'نسخ'; }, 16000); })
       .catch(() => toast('تعذر النسخ؛ تحقق من صلاحية الحافظة'));
   });
-  head.append(label, btn);
+  const dl = document.createElement('button'); dl.type = 'button'; dl.textContent = 'تحميل';
+  dl.addEventListener('click', () => {
+    const ext = LANG_EXT[l] || (l.replace(/[^a-z0-9]/g, '') || 'txt');
+    saveFile('code-' + Date.now().toString(36) + '.' + ext, code, 'text/plain;charset=utf-8');
+  });
+  const actions = document.createElement('span'); actions.style.cssText = 'display:flex;gap:6px';
+  actions.append(btn, dl);
+  if (l === 'html') {
+    const pv = document.createElement('button'); pv.type = 'button'; pv.textContent = 'معاينة';
+    pv.addEventListener('click', () => {
+      const url = URL.createObjectURL(new Blob([code], { type: 'text/html;charset=utf-8' }));
+      window.open(url, '_blank', 'noopener'); setTimeout(() => URL.revokeObjectURL(url), 60000);
+    });
+    actions.append(pv);
+  }
+  head.append(label, actions);
   const pre = document.createElement('pre'); const codeEl = document.createElement('code');
   codeEl.textContent = code; pre.appendChild(codeEl); wrap.append(head, pre); return wrap;
 }
@@ -827,6 +868,7 @@ function buildTurn(m, isLastFailed, isLastAssistant){
   const turn = document.createElement('div');
   turn.className = 'turn ' + (m.role === 'user' ? 'user' : 'ai');
   turn.appendChild(makeBubble(m.content, m.role));
+  if (m.image && m.image.url) { const im = document.createElement('img'); im.className = 'msgimg'; im.alt = m.image.name || 'صورة'; im.src = m.image.url; turn.insertBefore(im, turn.firstChild); }
   if (m.role === 'user' && m.failed) {
     turn.querySelector('.msg').classList.add('failed');
     const foot = document.createElement('div'); foot.className = 'turnfoot';
@@ -902,7 +944,7 @@ function sanitizeMessages(list){
   return Array.isArray(list) ? list.filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
     .map(m => ({ role: m.role, content: m.content, failed: !!m.failed, errorText: m.errorText, interrupted: !!m.interrupted })).slice(-MAX_TURNS) : [];
 }
-function saveConvs(){ convs.forEach(c => { c.messages = c.messages.slice(-MAX_TURNS); }); store.set(CONVS_KEY, JSON.stringify({ v: 3, activeId, convs })); }
+function saveConvs(){ convs.forEach(c => { c.messages = c.messages.slice(-MAX_TURNS); }); store.set(CONVS_KEY, JSON.stringify({ v: 3, activeId, convs: convs.map(c => ({ ...c, messages: c.messages.map(({ image, ...m }) => m) })) })); }
 function renderConvList(){
   const list = $('convList'); list.innerHTML = '';
   convs.forEach(c => {
@@ -1084,8 +1126,9 @@ function toGeminiContents(messages){
     const role = m.role === 'assistant' ? 'model' : 'user';
     if (!out.length && role === 'model') continue;
     const prev = out[out.length - 1];
-    if (prev && prev.role === role) prev.parts[0].text += '\n\n' + m.content;
-    else out.push({ role, parts: [{ text: m.content }] });
+    const imgPart = m.image ? [{ inlineData: { mimeType: m.image.mime, data: m.image.data } }] : [];
+    if (prev && prev.role === role) { prev.parts[0].text += '\n\n' + m.content; prev.parts.push(...imgPart); }
+    else out.push({ role, parts: [{ text: m.content }, ...imgPart] });
   }
   if (!out.length) throw new RequestError('لا توجد رسالة مستخدم صالحة للإرسال', { retryable: false });
   return out;
@@ -1109,13 +1152,17 @@ function geminiOnce(model, messages, key, o, signal, onDelta){
     provider: 'Gemini', signal, stream: o.stream, onDelta, parseDelta: parseCandidates, parseFull: parseCandidates
   });
 }
+function toOpenAIMsg(m){
+  if (!m.image) return { role: m.role, content: m.content };
+  return { role: m.role, content: [{ type: 'text', text: m.content }, { type: 'image_url', image_url: { url: 'data:' + m.image.mime + ';base64,' + m.image.data } }] };
+}
 function callOpenAI(base, model, key, messages, provider, o, signal, onDelta){
   if (!base || !model) throw new RequestError('أدخل عنوان الخادم واسم النموذج', { retryable: false });
   const endpoint = validateEndpoint(base, true);
   const url = endpoint.endsWith('/chat/completions') ? endpoint : endpoint + '/chat/completions';
   return streamRequest({
     url,
-    body: { model, messages: [{ role: 'system', content: buildSystem(o.system) }, ...messages], stream: o.stream, temperature: o.temperature, max_tokens: o.maxTokens },
+    body: { model, messages: [{ role: 'system', content: buildSystem(o.system) }, ...messages.map(toOpenAIMsg)], stream: o.stream, temperature: o.temperature, max_tokens: o.maxTokens },
     headers: { 'Content-Type': 'application/json', ...(key ? { Authorization: 'Bearer ' + key } : {}) },
     provider, signal, stream: o.stream, onDelta,
     parseDelta: json => json?.choices?.[0]?.delta?.content || '',
@@ -1173,14 +1220,18 @@ function setBusy(value){
   btn.setAttribute('aria-label', value ? 'إيقاف الرد' : 'إرسال الرسالة');
 }
 function convOptions(){ const s = current().settings; return { ...s, geminiModel: s.geminiModel, groqModel: s.groqModel }; }
-function contextFor(conv){ return conv.messages.filter(m => !m.failed).map(m => ({ role: m.role, content: m.content })).slice(-conv.settings.context); }
-async function sendText(text){
+function contextFor(conv){
+  const kept = conv.messages.filter(m => !m.failed).slice(-conv.settings.context);
+  const lastUser = kept.map(m => m.role).lastIndexOf('user');
+  return kept.map((m, i) => ({ role: m.role, content: m.content, ...(m.image && i === lastUser ? { image: m.image } : {}) }));
+}
+async function sendText(text, image){
   if (busy || !text) return;
   if (text.length > MAX_INPUT) { toast('الرسالة طويلة جداً؛ الحد ' + MAX_INPUT.toLocaleString('ar') + ' حرف'); return; }
   const keyResult = applyKeysFromForm();
   if (!keyResult.ok) { toast(keyResult.error); return; }
   const conv = current();
-  conv.messages.push({ role: 'user', content: text });
+  conv.messages.push({ role: 'user', content: text, ...(image ? { image } : {}) });
   if (conv.messages.length === 1) conv.title = titleFrom(conv.messages);
   saveConvs(); renderCurrent(); $('chatTitle').textContent = conv.title;
   const node = addPending(); setBusy(true); setStatus('● جارٍ الاتصال…', 'busy');
@@ -1190,7 +1241,18 @@ async function sendText(text){
   const paint = () => { frame = 0; setStreaming(node, streamed); };
   const onDelta = t => { streamed = t; if (o.stream && !frame) frame = requestAnimationFrame(paint); };
   try {
-    const { text: answer, provider } = await getAnswer(messages, o, activeController.signal, onDelta);
+    const first = await getAnswer(messages, o, activeController.signal, onDelta);
+    let answer = first.text; const provider = first.provider;
+    for (let round = 0; round < 3 && isTruncated(answer) && !activeController.signal.aborted; round++) {
+      const base = answer;
+      try {
+        const more = await getAnswer([...messages, { role: 'assistant', content: base }, { role: 'user', content: CONTINUE_PROMPT }], o, activeController.signal, t => onDelta(base + t));
+        answer = base + more.text;
+      } catch (contErr) {
+        toast('توقف الاستكمال التلقائي: ' + (contErr.message || 'خطأ'));
+        break;
+      }
+    }
     if (frame) cancelAnimationFrame(frame);
     conv.messages.push({ role: 'assistant', content: answer });
     setStatus('● ' + modeLabel() + ' · ' + provider + ' · متصل', 'ok');
@@ -1199,7 +1261,7 @@ async function sendText(text){
     const partial = (error.partial || '').trim();
     const reason = error.cancelled ? 'أُوقف الرد.' : (error.message || 'خطأ غير معروف');
     if (partial) conv.messages.push({ role: 'assistant', content: partial, interrupted: true, errorText: error.cancelled ? 'أُوقف الرد قبل اكتماله.' : 'انقطع الرد: ' + reason });
-    else conv.messages.push({ role: 'user', content: text, failed: true, errorText: error.cancelled ? 'أُوقف الإرسال.' : 'فشل الإرسال: ' + reason });
+    else conv.messages.push({ role: 'user', content: text, ...(image ? { image } : {}), failed: true, errorText: error.cancelled ? 'أُوقف الإرسال.' : 'فشل الإرسال: ' + reason });
     setStatus('● ' + modeLabel() + ' · ' + (error.cancelled ? 'أُوقف' : 'غير متصل'), error.cancelled ? 'idle' : 'bad');
     if (!error.cancelled) toast('فشل الإرسال — التفاصيل ظاهرة تحت رسالتك');
   } finally {
@@ -1209,7 +1271,9 @@ async function sendText(text){
 function send(){
   if (busy) { activeController?.abort(); return; }
   const input = $('prompt'); const text = input.value.trim();
-  if (!text) return; input.value = ''; autosize(); sendText(text);
+  if (!text && !pendingImage) return;
+  const image = pendingImage; pendingImage = null; renderImgPrev();
+  input.value = ''; autosize(); sendText(text || 'صِف هذه الصورة وحللها بالتفصيل.', image);
 }
 function retryLast(){
   if (busy) return;
@@ -1218,7 +1282,8 @@ function retryLast(){
   for (let i = conv.messages.length - 1; i >= 0; i--) if (conv.messages[i].role === 'user') { idx = i; break; }
   if (idx < 0) return;
   const text = conv.messages[idx].content;
-  conv.messages = conv.messages.slice(0, idx); saveConvs(); renderCurrent(); sendText(text);
+  const img = conv.messages[idx].image;
+  conv.messages = conv.messages.slice(0, idx); saveConvs(); renderCurrent(); sendText(text, img);
 }
 function keyKind(key){
   if (/^AIza[0-9A-Za-z_-]{20,}$/.test(key) || /^AQ\.[0-9A-Za-z_.-]{20,}$/.test(key)) return 'gemini';
@@ -1328,7 +1393,7 @@ function downloadBlob(blob, name){
 function saveFile(name, content, mime){
   try {
     const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
-    if (blob.size > 5000000) { toast('حجم الملف أكبر من الحد المسموح'); return false; }
+    if (blob.size > 12582912) { toast('حجم الملف أكبر من الحد المسموح'); return false; }
     if (window.NativeFiles?.saveTextFile) { const ok = NativeFiles.saveTextFile(name, String(content), mime || 'text/plain'); if (!ok) toast('تعذر بدء الحفظ'); return !!ok; }
     downloadBlob(blob, name); return true;
   } catch (error) { toast('تعذر إنشاء الملف: ' + error.message); return false; }
@@ -1543,6 +1608,47 @@ window.addEventListener('error', e => diag('error', 'خطأ تشغيل تم اح
 window.addEventListener('unhandledrejection', e => diag('error', 'وعد غير معالج تم احتواؤه: ' + String(e.reason?.message || e.reason || '')));
 document.addEventListener('visibilitychange', () => { if (!document.hidden) runSelfCheck(false); });
 
+const MAX_IMAGE = 10 * 1024 * 1024;
+const BG_KEY = 'smart_programmer_bg';
+let pendingImage = null;
+function readImage(file){
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) return reject(new Error('الملف ليس صورة'));
+    if (file.size > MAX_IMAGE) return reject(new Error('الصورة أكبر من 10 ميجابايت'));
+    const fr = new FileReader();
+    fr.onload = () => { const url = String(fr.result); resolve({ name: file.name, mime: file.type, data: url.slice(url.indexOf(',') + 1), url }); };
+    fr.onerror = () => reject(new Error('تعذر قراءة الصورة'));
+    fr.readAsDataURL(file);
+  });
+}
+function renderImgPrev(){
+  const box = $('imgPrev'); box.innerHTML = ''; box.hidden = !pendingImage;
+  if (!pendingImage) return;
+  const img = document.createElement('img'); img.src = pendingImage.url; img.alt = pendingImage.name;
+  const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'secondary'; rm.textContent = 'إزالة الصورة';
+  rm.addEventListener('click', () => { pendingImage = null; renderImgPrev(); });
+  box.append(img, rm);
+}
+function applyBg(){
+  let url = ''; try { url = localStorage.getItem(BG_KEY) || ''; } catch {}
+  $('bgLayer').style.backgroundImage = url ? 'url("' + url + '")' : 'none';
+}
+$('imgBtn').addEventListener('click', () => $('imgInput').click());
+$('imgInput').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+  try { pendingImage = await readImage(f); renderImgPrev(); toast('أُرفقت الصورة؛ اكتب سؤالك ثم أرسل'); }
+  catch (er) { toast(er.message); }
+});
+$('bgPickBtn').addEventListener('click', () => $('bgInput').click());
+$('bgInput').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+  if (!f.type.startsWith('image/') || f.size > 3 * 1024 * 1024) { toast('اختر صورة أقل من 3 ميجابايت'); return; }
+  const fr = new FileReader();
+  fr.onload = () => { try { localStorage.setItem(BG_KEY, String(fr.result)); applyBg(); toast('تم تعيين الخلفية'); } catch { toast('الصورة كبيرة على التخزين؛ اختر صورة أصغر'); } };
+  fr.readAsDataURL(f);
+});
+$('bgClearBtn').addEventListener('click', () => { try { localStorage.removeItem(BG_KEY); } catch {} applyBg(); toast('أُزيلت الخلفية'); });
+applyBg();
 loadConfig(); loadConvs(); loadCode(); refreshKeyStatus(); refreshSecurityStatus(); refreshAll(); autosize();
 history.replaceState({ app: 1, view: 'chat' }, '');
 runSelfCheck(false);
