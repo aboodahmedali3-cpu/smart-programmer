@@ -398,8 +398,7 @@ html[data-shape="soft"] .side, html[data-shape="soft"] .top, html[data-shape="so
       <div class="imgprev" id="imgPrev" hidden></div>
       <div class="composebar">
         <div class="leftbar">
-          <button class="iconbtn" id="attachBtn" type="button" aria-label="إرفاق ملف نصي" title="إرفاق ملف">＋</button>
-          <button class="iconbtn" id="imgBtn" type="button" aria-label="إرفاق صورة" title="إرفاق صورة">🖼</button>
+          <button class="iconbtn" id="attachBtn" type="button" aria-label="إرفاق ملف أو صورة" title="إرفاق ملف أو صورة">＋</button>
           <span class="modelpill" id="modelPill" title="النموذج الحالي">○ محلي</span>
         </div>
         <button class="send" id="sendBtn" type="button" aria-label="إرسال">↑</button>
@@ -651,8 +650,7 @@ html[data-shape="soft"] .side, html[data-shape="soft"] .top, html[data-shape="so
 </section>
 
 <!-- +ROUTER: عناصر مخفية كانت تُستدعى من الكود -->
-<input type="file" id="fileInput" accept=".txt,.md,.py,.js,.json,.html,.css,.kt,.java,.sql,.xml,.yml,.yaml,.csv" hidden>
-<input type="file" id="imgInput" accept="image/*" hidden>
+<input type="file" id="fileInput" accept=".txt,.md,.py,.js,.json,.html,.css,.kt,.java,.sql,.xml,.yml,.yaml,.csv,image/*" hidden>
 <input type="file" id="bgInput" accept="image/*" hidden>
 <div class="convpanel" id="convPanel" hidden>
   <div class="sec">
@@ -1417,6 +1415,11 @@ function forgetKeys(){
 }
 function attachFile(file){
   if (!file) return;
+  if (file.type && file.type.startsWith('image/')) {
+    readImage(file).then(img => { pendingImage = img; renderImgPrev(); toast('أُرفقت الصورة؛ اكتب سؤالك ثم أرسل'); })
+      .catch(er => toast(er.message));
+    return;
+  }
   if (file.size > MAX_FILE) { toast('الملف أكبر من ' + Math.round(MAX_FILE / 1048576) + ' ميجابايت'); return; }
   file.text().then(text => {
     if (text.includes('\u0000')) { toast('الملف يبدو ثنائياً؛ أرفق ملفاً نصياً'); return; }
@@ -1679,12 +1682,6 @@ function applyBg(){
   let url = ''; try { url = localStorage.getItem(BG_KEY) || ''; } catch {}
   $('bgLayer').style.backgroundImage = url ? 'url("' + url + '")' : 'none';
 }
-$('imgBtn').addEventListener('click', () => $('imgInput').click());
-$('imgInput').addEventListener('change', async e => {
-  const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
-  try { pendingImage = await readImage(f); renderImgPrev(); toast('أُرفقت الصورة؛ اكتب سؤالك ثم أرسل'); }
-  catch (er) { toast(er.message); }
-});
 $('bgPickBtn').addEventListener('click', () => $('bgInput').click());
 $('bgInput').addEventListener('change', e => {
   const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
