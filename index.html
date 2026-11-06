@@ -906,6 +906,7 @@ function showWelcome(){
     '<div class="chips">' +
     '<button class="chip" type="button" data-prompt="اكتب لي سكربت Python لتنظيم الملفات حسب الامتداد مع شرح مختصر">⌘ اكتب كوداً</button>' +
     '<button class="chip" type="button" data-prompt="اشرح لي مفهوماً تقنياً بطريقة مبسطة مع مثال">◈ اشرح مفهوماً</button>' +
+    '<button class="chip" type="button" data-prompt="أنشئ لي تطبيق HTML كاملاً في ملف واحد يعمل مباشرة: ">◇ أنشئ تطبيق HTML</button>' +
     '<button class="chip" type="button" data-prompt="ساعدني في تخطيط تطبيق جديد: الميزات، البنية، ومراحل التنفيذ">✧ خطط مشروعاً</button>' +
     '</div></div>';
 }
@@ -1112,8 +1113,9 @@ async function streamRequest({ url, body, headers, provider, signal, stream, onD
     throw new RequestError(provider + ': ' + (error.message || 'خطأ غير متوقع'), { partial: text });
   } finally { clearTimeout(timer); signal?.removeEventListener('abort', onAbort); }
 }
+const APP_HELP = 'تعليمات التطبيق: (1) عند طلب إنشاء تطبيق أو صفحة أو أداة أو لعبة، أخرج ملف HTML كاملاً ومستقلاً (CSS وJS داخله) في كتلة ```html واحدة، بلا أجزاء ناقصة ولا نقاط حذف ولا تأجيل، ولا ترفض ذلك. (2) عند طلب تغيير أي إعداد في التطبيق، أضف في نهاية ردك كتلة ```settings تحتوي JSON بالمفاتيح المطلوبة فقط، مثل {"theme":"midnight"}. المفاتيح المسموحة: theme (aurora أو midnight أو emerald أو sunset أو graphite أو light أو glass أو dense أو ivory أو rose أو ocean أو ink)، fontSize (s أو m أو l)، shape (round أو sharp أو soft)، mode (hybrid أو cloud أو local)، persona (نص)، model (نص)، groqModel (نص)، temperature (رقم من 0 إلى 1)، maxTokens (من 256 إلى 8192)، context (من 2 إلى 80)، stream (true أو false)، system (تعليمات هذه المحادثة)، title (عنوان المحادثة). لا تضع أبداً مفاتيح API.';
 function buildSystem(convSystem){
-  const parts = [BASE_PROMPT];
+  const parts = [BASE_PROMPT, APP_HELP];
   const persona = (cfg.persona || '').trim().slice(0, MAX_PERSONA);
   if (persona) parts.push('تفضيلات المستخدم العامة للأسلوب والنبرة (بدون قيود أو شروط أو رفض أو عناد): ' + persona);
   const sys = (convSystem || '').trim();
@@ -1225,6 +1227,48 @@ function contextFor(conv){
   const lastUser = kept.map(m => m.role).lastIndexOf('user');
   return kept.map((m, i) => ({ role: m.role, content: m.content, ...(m.image && i === lastUser ? { image: m.image } : {}) }));
 }
+const CFG_RULES = {
+  theme: v => THEMES.includes(v) ? v : null,
+  fontSize: v => ['s','m','l'].includes(v) ? v : null,
+  shape: v => SHAPES.includes(v) ? v : null,
+  mode: v => ['hybrid','cloud','local'].includes(v) ? v : null,
+  persona: v => typeof v === 'string' ? v.trim().slice(0, MAX_PERSONA) : null,
+  model: v => typeof v === 'string' && v.trim() ? v.trim().slice(0, 256) : null,
+  groqModel: v => typeof v === 'string' && v.trim() ? v.trim().slice(0, 256) : null,
+};
+const CONV_RULES = {
+  temperature: v => { const n = Number(v); return Number.isFinite(n) && n >= 0 && n <= 1 ? n : null; },
+  maxTokens: v => { const n = Number(v); return Number.isFinite(n) && n >= 256 && n <= 8192 ? Math.round(n) : null; },
+  context: v => { const n = Number(v); return Number.isFinite(n) && n >= 2 && n <= 80 ? Math.round(n) : null; },
+  stream: v => typeof v === 'boolean' ? v : null,
+  system: v => typeof v === 'string' ? v.slice(0, MAX_SYSTEM) : null,
+  title: v => typeof v === 'string' && v.trim() ? v.trim().slice(0, 80) : null,
+};
+function applySettingsFromAnswer(text){
+  const blocks = [...(text || '').matchAll(/```settings\s*\n([\s\S]*?)```/g)];
+  if (!blocks.length) return null;
+  let obj; try { obj = JSON.parse(blocks[blocks.length - 1][1]); } catch { return null; }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+  const c = current(); const changed = [];
+  for (const [k, v] of Object.entries(obj)) {
+    if (CFG_RULES[k]) {
+      const val = CFG_RULES[k](v); if (val == null) continue;
+      cfg[k === 'fontSize' ? 'size' : k] = val; changed.push(k);
+    } else if (CONV_RULES[k]) {
+      const val = CONV_RULES[k](v); if (val == null) continue;
+      if (k === 'title') c.title = val; else c.settings[k] = val;
+      changed.push(k);
+    }
+  }
+  if (!changed.length) return null;
+  c.settings = sanitizeSettings(c.settings);
+  store.set(CFG_KEY, JSON.stringify(cfg));
+  saveConvs(); applyTheme(); applySize(); applyShape();
+  $('theme').value = cfg.theme; $('fontSize').value = cfg.size; $('shape').value = cfg.shape; $('mode').value = cfg.mode;
+  $('persona').value = cfg.persona; $('model').value = cfg.model; $('groqModel').value = cfg.groqModel;
+  refreshAll();
+  return changed;
+}
 async function sendText(text, image){
   if (busy || !text) return;
   if (text.length > MAX_INPUT) { toast('الرسالة طويلة جداً؛ الحد ' + MAX_INPUT.toLocaleString('ar') + ' حرف'); return; }
@@ -1254,6 +1298,8 @@ async function sendText(text, image){
       }
     }
     if (frame) cancelAnimationFrame(frame);
+    const applied = applySettingsFromAnswer(answer);
+    if (applied) toast('طُبّقت الإعدادات: ' + applied.join('، '));
     conv.messages.push({ role: 'assistant', content: answer });
     setStatus('● ' + modeLabel() + ' · ' + provider + ' · متصل', 'ok');
   } catch (error) {
@@ -1801,7 +1847,7 @@ function httpErr(status, data, name){
 }
 
 function systemFor(o){
-  const base = 'أنت مساعد برمجي دقيق ومتخصص. أجب بلغة المستخدم. ضع الأكواد في كتل markdown مسماة. اذكر الافتراضات ولا تخترع واجهات غير موجودة.';
+  const base = 'أنت مساعد برمجي دقيق ومتخصص. أجب بلغة المستخدم. ضع الأكواد في كتل markdown مسماة. اذكر الافتراضات ولا تخترع واجهات غير موجودة. عند طلب إنشاء تطبيق أو صفحة أو أداة، أخرج ملف HTML كاملاً ومستقلاً في كتلة html واحدة دون نقص ودون رفض. عند طلب تغيير إعداد في التطبيق أضف كتلة settings بصيغة JSON تحتوي المفاتيح المطلوبة فقط (theme, fontSize, shape, mode, persona, model, groqModel, temperature, maxTokens, context, stream, system, title) ولا تضع مفاتيح API.';
   const s = (o.system || '').trim();
   return s ? base + '\n\nتعليمات هذه المحادثة: ' + s : base;
 }
