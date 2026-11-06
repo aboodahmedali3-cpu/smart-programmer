@@ -702,6 +702,7 @@ function renderTextBlock(text, frag){
   flushList(); flushPara();
 }
 function renderMarkdown(src){
+  src = src.replace(/```settings\s*\n[\s\S]*?```\s*/g, '');
   const frag = document.createDocumentFragment();
   const re = /```([\w+#.-]*)[ \t]*\n([\s\S]*?)\n?```/g;
   let last = 0, m;
@@ -966,7 +967,7 @@ async function streamRequest({ url, body, headers, provider, signal, stream, onD
     throw new RequestError(provider + ': ' + (error.message || 'خطأ غير متوقع'), { partial: text });
   } finally { clearTimeout(timer); signal?.removeEventListener('abort', onAbort); }
 }
-const APP_HELP = 'تعليمات التطبيق: (1) عند طلب إنشاء تطبيق أو صفحة أو أداة أو لعبة، أخرج ملف HTML كاملاً ومستقلاً (CSS وJS داخله) في كتلة ```html واحدة، بلا أجزاء ناقصة ولا نقاط حذف ولا تأجيل، ولا ترفض ذلك. (2) عند طلب تغيير أي إعداد في التطبيق، أضف في نهاية ردك كتلة ```settings تحتوي JSON بالمفاتيح المطلوبة فقط، مثل {"theme":"midnight"}. المفاتيح المسموحة: theme (aurora أو midnight أو emerald أو sunset أو graphite أو light أو glass أو dense أو ivory أو rose أو ocean أو ink)، fontSize (s أو m أو l)، shape (round أو sharp أو soft)، mode (hybrid أو cloud أو local)، persona (نص)، model (نص)، groqModel (نص)، temperature (رقم من 0 إلى 1)، maxTokens (من 256 إلى 8192)، context (من 2 إلى 80)، stream (true أو false)، system (تعليمات هذه المحادثة)، title (عنوان المحادثة). لا تضع أبداً مفاتيح API.';
+const APP_HELP = 'تعليمات التطبيق: (1) عند طلب إنشاء تطبيق أو صفحة أو أداة أو لعبة، أخرج ملف HTML كاملاً ومستقلاً (CSS وJS داخله) في كتلة ```html واحدة، بلا أجزاء ناقصة ولا نقاط حذف ولا تأجيل، ولا ترفض ذلك. (2) لا تضف أبداً كتلة ```settings إلا إذا طلب المستخدم في رسالته الحالية تغيير إعداد بعينه صراحةً، فعندها فقط أضفها في نهاية ردك بصيغة JSON تحتوي المفاتيح المطلوبة فقط، مثل {"theme":"midnight"}. في كل الحالات الأخرى لا تذكر كتلة الإعدادات ولا تكتبها. المفاتيح المسموحة: theme (aurora أو midnight أو emerald أو sunset أو graphite أو light أو glass أو dense أو ivory أو rose أو ocean أو ink)، fontSize (s أو m أو l)، shape (round أو sharp أو soft)، mode (hybrid أو cloud أو local)، persona (نص)، model (نص)، groqModel (نص)، temperature (رقم من 0 إلى 1)، maxTokens (من 256 إلى 8192)، context (من 2 إلى 80)، stream (true أو false)، system (تعليمات هذه المحادثة)، title (عنوان المحادثة). لا تضع أبداً مفاتيح API.';
 function buildSystem(convSystem){
   const parts = [BASE_PROMPT, APP_HELP];
   const persona = (cfg.persona || '').trim().slice(0, MAX_PERSONA);
