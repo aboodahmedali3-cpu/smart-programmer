@@ -413,6 +413,7 @@ html[data-shape="soft"] :is(.side,.top,.content){border-radius:24px}
     <div class="field"><label for="fallbackKey">المفتاح الثاني (اختياري، يُحفظ ولا يُستخدم إلا إن اخترت مزوّده)</label>
       <input id="fallbackKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="مفتاح المزوّد الآخر إن توفر">
     </div>
+    <div class="field"><label for="geminiPool">مفاتيح Gemini الإضافية (سطر أو مسافة بين كل مفتاح)، تُجرّب بالترتيب عند تعطّل أي مفتاح</label><textarea id="geminiPool" rows="3" autocomplete="off" spellcheck="false" placeholder="AIza...&#10;AIza..."></textarea></div>
     <div class="field"><label for="activeProvider">المزوّد المفعّل (يُستخدم واحد فقط)</label><select id="activeProvider"><option value="gemini">Gemini (الأولوية)</option><option value="groq">Groq</option></select></div>
     <p class="muted" id="keyStatus" aria-live="polite">المفاتيح في هذه الجلسة: لا يوجد</p>
     <div class="row"><button class="secondary danger" id="forgetKeysBtn" type="button">مسح المفاتيح من الجلسة</button></div>
@@ -565,7 +566,7 @@ const KEYS_KEY = 'smart_programmer_keys';
 let customKey = '';
 function persistKeys(){
   try {
-    if (cfg.rememberKeys) store.set(KEYS_KEY, JSON.stringify({ g: geminiKey, q: groqKey, p: primaryProvider, c: customKey }));
+    if (cfg.rememberKeys) store.set(KEYS_KEY, JSON.stringify({ g: geminiKey, gp: geminiPool, q: groqKey, p: primaryProvider, c: customKey }));
     else store.remove(KEYS_KEY);
   } catch {}
 }
@@ -584,6 +585,7 @@ function applySize(){ document.documentElement.dataset.size = ['s','m','l'].incl
 function applyTheme(){ document.documentElement.dataset.theme = THEMES.includes(cfg.theme) ? cfg.theme : 'aurora'; }
 function applyShape(){ document.documentElement.dataset.shape = SHAPES.includes(cfg.shape) ? cfg.shape : 'round'; }
 let geminiKey = '', groqKey = '', primaryProvider = 'gemini';
+let geminiPool = [];
 let activeController = null;
 let busy = false;
 const store = {
@@ -609,7 +611,7 @@ function setStatus(text, state = 'idle'){
   el.classList.toggle('bad', state === 'bad'); el.classList.toggle('busy', state === 'busy');
 }
 function modeLabel(){ return cfg.mode === 'hybrid' ? 'هجين' : cfg.mode === 'local' ? 'محلي' : 'سحابي'; }
-function hasAnyProvider(){ return !!(geminiKey || groqKey || (cfg.localEndpoint && cfg.localModel)); }
+function hasAnyProvider(){ return !!(geminiKey || geminiPool.length || groqKey || (cfg.localEndpoint && cfg.localModel)); }
 function nearBottom(el){ return el.scrollHeight - el.scrollTop - el.clientHeight < 120; }
 function autosize(){ const t = $('prompt'); t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 260) + 'px'; }
 function setConnBox(html){ $('connBox').innerHTML = html; }
@@ -1032,8 +1034,9 @@ function callGroq(messages, key, o, signal, onDelta){
 function orderedCloudProviders(){
   const gem = geminiKey ? { name: 'Gemini', run: (m, o, s, d) => callGemini(m, geminiKey, o, s, d) } : null;
   const grq = groqKey ? { name: 'Groq', run: (m, o, s, d) => callGroq(m, groqKey, o, s, d) } : null;
-  const chosen = cfg.activeProvider === 'groq' ? grq : gem;
-  return chosen ? [chosen] : [];
+  if (cfg.activeProvider === 'groq') return grq ? [grq] : [];
+  const keys = [...new Set([geminiKey, ...geminiPool].filter(Boolean))];
+  return keys.map((key, i) => ({ name: keys.length > 1 ? 'Gemini (مفتاح ' + (i + 1) + ')' : 'Gemini', run: (m, o, s, d) => callGemini(m, key, o, s, d) }));
 }
 async function callCloud(messages, o, signal, onDelta){
   const providers = orderedCloudProviders();
@@ -1199,10 +1202,15 @@ function keyKind(key){
 }
 function refreshKeyStatus(){
   const parts = [];
-  if (geminiKey) parts.push('Gemini ✓'); if (groqKey) parts.push('Groq ✓'); if (customKey) parts.push('مفتاح API متوافق ✓');
+  if (geminiKey || geminiPool.length) parts.push('Gemini ✓' + (new Set([geminiKey, ...geminiPool].filter(Boolean)).size > 1 ? ' (' + new Set([geminiKey, ...geminiPool].filter(Boolean)).size + ' مفاتيح)' : '')); if (groqKey) parts.push('Groq ✓'); if (customKey) parts.push('مفتاح API متوافق ✓');
   $('keyStatus').textContent = 'المفاتيح في هذه الجلسة: ' + (parts.length ? parts.join(' · ') + (cfg.rememberKeys ? ' (محفوظة)' : ' (تُمسح عند الإغلاق)') : 'لا يوجد');
 }
 function applyKeysFromForm(){
+  const poolRaw = $('geminiPool').value.trim();
+  if (poolRaw) {
+    geminiPool = [...new Set(poolRaw.split(/[\s,;]+/).map(x => x.trim()).filter(x => keyKind(x) === 'gemini'))];
+    $('geminiPool').value = '';
+  }
   const primaryRaw = $('apiKey').value.trim(); const fallbackRaw = $('fallbackKey').value.trim();
   if ($('customKey').value.trim()) { customKey = $('customKey').value.trim(); $('customKey').value = ''; persistKeys(); }
   if (!primaryRaw && !fallbackRaw) return { ok: true };
@@ -1272,6 +1280,7 @@ async function testConnection(){
   } finally { btn.disabled = false; refreshKeyStatus(); }
 }
 function forgetKeys(){
+  geminiPool = [];
   geminiKey = ''; groqKey = ''; customKey = ''; primaryProvider = 'gemini';
   try { store.remove(KEYS_KEY); } catch {}
   $('apiKey').value = ''; $('fallbackKey').value = ''; refreshKeyStatus();
@@ -1400,7 +1409,7 @@ function loadConfig(){
   $('rememberKeys').checked = cfg.rememberKeys === true;
   $('activeProvider').value = cfg.activeProvider;
     if (cfg.rememberKeys) {
-    try { const k = JSON.parse(store.get(KEYS_KEY) || 'null'); if (k) { geminiKey = typeof k.g === 'string' ? k.g : ''; groqKey = typeof k.q === 'string' ? k.q : ''; primaryProvider = k.p === 'groq' ? 'groq' : 'gemini'; customKey = typeof k.c === 'string' ? k.c : ''; refreshKeyStatus(); } } catch {}
+    try { const k = JSON.parse(store.get(KEYS_KEY) || 'null'); if (k) { geminiKey = typeof k.g === 'string' ? k.g : ''; geminiPool = Array.isArray(k.gp) ? k.gp.filter(x => typeof x === 'string') : []; groqKey = typeof k.q === 'string' ? k.q : ''; primaryProvider = k.p === 'groq' ? 'groq' : 'gemini'; customKey = typeof k.c === 'string' ? k.c : ''; refreshKeyStatus(); } } catch {}
   }
   applyTheme(); applySize(); applyShape();
 }
@@ -1493,7 +1502,7 @@ function renderDiag(){
 function restoreKeys(){
   if (!cfg.rememberKeys || hasAnyProvider()) return false;
   try { const k = JSON.parse(store.get(KEYS_KEY) || 'null'); if (!k) return false;
-    geminiKey = typeof k.g === 'string' ? k.g : ''; groqKey = typeof k.q === 'string' ? k.q : '';
+    geminiKey = typeof k.g === 'string' ? k.g : ''; geminiPool = Array.isArray(k.gp) ? k.gp.filter(x => typeof x === 'string') : []; groqKey = typeof k.q === 'string' ? k.q : '';
     primaryProvider = k.p === 'groq' ? 'groq' : 'gemini'; customKey = typeof k.c === 'string' ? k.c : '';
     refreshKeyStatus(); return hasAnyProvider();
   } catch { return false; }
