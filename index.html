@@ -410,9 +410,10 @@ html[data-shape="soft"] :is(.side,.top,.content){border-radius:24px}
       <input id="apiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Gemini (AIza… أو AQ.…) أو Groq (gsk_…)">
       <small class="muted">يُكتشف المزوّد تلقائياً. يمكنك لصق المفتاح والضغط على إرسال مباشرة، فالتطبيق يقرأه من الحقل.</small>
     </div>
-    <div class="field"><label for="fallbackKey">مفتاح احتياطي (اختياري، من المزوّد الآخر)</label>
+    <div class="field"><label for="fallbackKey">المفتاح الثاني (اختياري، يُحفظ ولا يُستخدم إلا إن اخترت مزوّده)</label>
       <input id="fallbackKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="مفتاح المزوّد الآخر إن توفر">
     </div>
+    <div class="field"><label for="activeProvider">المزوّد المفعّل (يُستخدم واحد فقط)</label><select id="activeProvider"><option value="gemini">Gemini (الأولوية)</option><option value="groq">Groq</option></select></div>
     <p class="muted" id="keyStatus" aria-live="polite">المفاتيح في هذه الجلسة: لا يوجد</p>
     <div class="row"><button class="secondary danger" id="forgetKeysBtn" type="button">مسح المفاتيح من الجلسة</button></div>
     <label class="check" style="margin:8px 0"><input id="rememberKeys" type="checkbox"> تذكّر المفاتيح على هذا الجهاز (تُحفظ دون تشفير، فلا تفعّله على جهاز مشترك)</label>
@@ -578,7 +579,7 @@ let convs = [];
 let activeId = null;
 const THEMES = ['aurora','midnight','emerald','sunset','graphite','light','glass','dense','ivory','rose','ocean','ink'];
 const SHAPES = ['round','sharp','soft'];
-let cfg = { mode:'hybrid', model:GEMINI_MODEL, groqModel:GROQ_MODEL, localEndpoint:'', localModel:'', persona:'', theme:'aurora', size:'m', shape:'round', rememberKeys:false };
+let cfg = { mode:'hybrid', model:GEMINI_MODEL, groqModel:GROQ_MODEL, localEndpoint:'', localModel:'', persona:'', theme:'aurora', size:'m', shape:'round', rememberKeys:false, activeProvider:'gemini' };
 function applySize(){ document.documentElement.dataset.size = ['s','m','l'].includes(cfg.size) ? cfg.size : 'm'; }
 function applyTheme(){ document.documentElement.dataset.theme = THEMES.includes(cfg.theme) ? cfg.theme : 'aurora'; }
 function applyShape(){ document.documentElement.dataset.shape = SHAPES.includes(cfg.shape) ? cfg.shape : 'round'; }
@@ -1030,14 +1031,12 @@ function callGroq(messages, key, o, signal, onDelta){
 function orderedCloudProviders(){
   const gem = geminiKey ? { name: 'Gemini', run: (m, o, s, d) => callGemini(m, geminiKey, o, s, d) } : null;
   const grq = groqKey ? { name: 'Groq', run: (m, o, s, d) => callGroq(m, groqKey, o, s, d) } : null;
-  const list = [];
-  if (primaryProvider === 'groq') { if (grq) list.push(grq); if (gem) list.push(gem); }
-  else { if (gem) list.push(gem); if (grq) list.push(grq); }
-  return list;
+  const chosen = cfg.activeProvider === 'groq' ? grq : gem;
+  return chosen ? [chosen] : [];
 }
 async function callCloud(messages, o, signal, onDelta){
   const providers = orderedCloudProviders();
-  if (!providers.length) throw new RequestError('لم تُضف مفتاحاً. ألصقه في الإعدادات ثم أرسل.', { retryable: false });
+  if (!providers.length) throw new RequestError('لا يوجد مفتاح للمزوّد المفعّل (' + (cfg.activeProvider === 'groq' ? 'Groq' : 'Gemini') + '). أضفه في الإعدادات.', { retryable: false });
   const failures = [];
   for (let i = 0; i < providers.length; i++) {
     const p = providers[i]; let attempt = 0;
@@ -1086,6 +1085,7 @@ const CFG_RULES = {
   persona: v => typeof v === 'string' ? v.trim().slice(0, MAX_PERSONA) : null,
   model: v => typeof v === 'string' && v.trim() ? v.trim().slice(0, 256) : null,
   groqModel: v => typeof v === 'string' && v.trim() ? v.trim().slice(0, 256) : null,
+  activeProvider: v => ['gemini','groq'].includes(v) ? v : null,
 };
 const CONV_RULES = {
   temperature: v => { const n = Number(v); return Number.isFinite(n) && n >= 0 && n <= 1 ? n : null; },
@@ -1116,7 +1116,7 @@ function applySettingsFromAnswer(text){
   store.set(CFG_KEY, JSON.stringify(cfg));
   saveConvs(); applyTheme(); applySize(); applyShape();
   $('theme').value = cfg.theme; $('fontSize').value = cfg.size; $('shape').value = cfg.shape; $('mode').value = cfg.mode;
-  $('persona').value = cfg.persona; $('model').value = cfg.model; $('groqModel').value = cfg.groqModel;
+  $('persona').value = cfg.persona; $('model').value = cfg.model; $('groqModel').value = cfg.groqModel; $('activeProvider').value = cfg.activeProvider;
   refreshAll();
   return changed;
 }
@@ -1234,7 +1234,8 @@ function readCfgFromForm(){
     theme: THEMES.includes($('theme').value) ? $('theme').value : 'aurora',
     size: ['s','m','l'].includes($('fontSize').value) ? $('fontSize').value : 'm',
     shape: SHAPES.includes($('shape').value) ? $('shape').value : 'round',
-    rememberKeys: $('rememberKeys').checked
+    rememberKeys: $('rememberKeys').checked,
+    activeProvider: $('activeProvider').value === 'groq' ? 'groq' : 'gemini'
   };
   if (!['hybrid', 'cloud', 'local'].includes(next.mode)) throw new Error('وضع التشغيل غير صالح');
   if ([next.model, next.groqModel, next.localModel, next.localEndpoint].some(v => v.length > 2048)) throw new Error('أحد الحقول أطول من الحد المسموح');
@@ -1388,13 +1389,15 @@ function loadConfig(){
         theme: THEMES.includes(p.theme) ? p.theme : 'aurora',
         size: ['s','m','l'].includes(p.size) ? p.size : 'm',
         shape: SHAPES.includes(p.shape) ? p.shape : 'round',
-        rememberKeys: p.rememberKeys === true };
+        rememberKeys: p.rememberKeys === true,
+        activeProvider: p.activeProvider === 'groq' ? 'groq' : 'gemini' };
     }
   } catch { toast('تعذر قراءة الإعدادات المحفوظة'); }
   $('mode').value = cfg.mode; $('model').value = cfg.model; $('groqModel').value = cfg.groqModel;
   $('localEndpoint').value = cfg.localEndpoint; $('localModel').value = cfg.localModel; $('persona').value = cfg.persona;
   $('theme').value = cfg.theme; $('fontSize').value = cfg.size; $('shape').value = cfg.shape;
   $('rememberKeys').checked = cfg.rememberKeys === true;
+  $('activeProvider').value = cfg.activeProvider;
     if (cfg.rememberKeys) {
     try { const k = JSON.parse(store.get(KEYS_KEY) || 'null'); if (k) { geminiKey = typeof k.g === 'string' ? k.g : ''; groqKey = typeof k.q === 'string' ? k.q : ''; primaryProvider = k.p === 'groq' ? 'groq' : 'gemini'; customKey = typeof k.c === 'string' ? k.c : ''; refreshKeyStatus(); } } catch {}
   }
@@ -1554,6 +1557,7 @@ $('bgInput').addEventListener('change', e => {
 });
 $('bgClearBtn').addEventListener('click', () => { try { localStorage.removeItem(BG_KEY); } catch {} applyBg(); toast('أُزيلت الخلفية'); });
 applyBg();
+$('activeProvider').addEventListener('change', e => { cfg.activeProvider = e.target.value === 'groq' ? 'groq' : 'gemini'; store.set(CFG_KEY, JSON.stringify(cfg)); toast('المزوّد المفعّل: ' + (cfg.activeProvider === 'groq' ? 'Groq' : 'Gemini')); });
 loadConfig(); loadConvs(); loadCode(); refreshKeyStatus(); refreshSecurityStatus(); refreshAll(); autosize();
 history.replaceState({ app: 1, view: 'chat' }, '');
 runSelfCheck(false);
